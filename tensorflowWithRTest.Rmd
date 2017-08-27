@@ -1,0 +1,83 @@
+---
+title: "tensorflowInstallTest"
+author: "eunkwang"
+date: '2017 8 27 '
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## tensorflow 설치
+
+R에서 텐서플로우를 설치하기 위해서는 파이썬 버전의 텐서플로우를 설치해야 함
+github 버전을 설치해야하므로 devtools을 우선 설치함
+설치하고 다음과 같이 로드를 함
+
+
+```{r}
+# install.packages("devtools")
+# devtools::install_github("rstudio/tensorflow", force = TRUE)
+library(tensorflow)
+```
+
+
+## tensorflow 설치 테스트
+
+텐서플로우는 파이썬의 라이브러리를 그대로 wrapping하여 처리하기 때문에 tensorflow 라이브러리를 설치하고 로드한 이후에는 파이썬의 라이브러리를 다음과 같이 실행하여 테스트 할 수 있음
+
+```{r}
+sess = tf$Session()
+
+sys <- import("sys")
+sys$stdout$writelines("test")
+
+numpy <- import("numpy")
+numpy$arange(100)
+
+hello <- tf$constant('Hello, TensorFlow!')
+sess$run(hello)
+```
+
+## 간단한 선형 모델링
+
+간단하게 선형 모델링을 테스트하기 위해 난수를 이용하여 간단한 선형 관계 변수를 만들어 모델링 과정을 테스트 함
+
+```{r}
+# 0~1 사이의 확률 난수를 생성
+# y_data = W * x_data + b 의 관계를 가정하고 W = 0.1, b=0.3 을 우선 지정하여 생성함
+
+x_data <- runif(100, min=0, max=1)
+y_data <- x_data * 0.1 + 0.3
+
+# 모델링을 위해 초기값을 지정
+
+W <- tf$Variable(tf$random_uniform(shape(1L), -1.0, 1.0))
+b <- tf$Variable(tf$zeros(shape(1L)))
+y <- W * x_data + b
+
+# mean square error 를 최소화를 cost로 모델링
+
+with({tf$name_scope("loss");tf$device('/cpu:0')},{
+  loss <- tf$reduce_mean((y - y_data) ^ 2)
+  optimizer <- tf$train$GradientDescentOptimizer(0.5)
+})
+
+train <- optimizer$minimize(loss)
+
+# 변수를 초기화
+
+sess = tf$Session()
+sess$run(tf$initialize_all_variables())
+
+# 반복 학습을 통해 W 와 b 값을 추론
+
+for (step in 1:1000) {
+  sess$run(train)
+  if (step %% 20 == 0)
+    cat(step, "-", sess$run(W), sess$run(b), "\n")
+}
+
+```
+끝
